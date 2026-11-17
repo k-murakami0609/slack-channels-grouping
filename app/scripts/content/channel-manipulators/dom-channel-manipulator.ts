@@ -1,5 +1,6 @@
 import $ from 'jquery/slim';
 import {
+  CLASS_CHANNEL_ITEM_MUTED,
   DATA_KEY_CHANNEL_ITEM_CONTENTS_CONTAINER_CHANNEL_ID,
   DATA_KEY_CHANNEL_ITEM_CONTENTS_CONTAINER_CHANNEL_TYPE,
   DATA_KEY_CHANNEL_NAME,
@@ -58,6 +59,7 @@ export class DomChannelManipulator implements ChannelManipulator {
       name: channelName,
       channelItemType,
       id: this.readChannelId($channelItem),
+      muted: $channelContentsContainer.hasClass(CLASS_CHANNEL_ITEM_MUTED),
     };
   }
 

@@ -76,7 +76,8 @@ export default class ChannelGrouper {
   }
 
   /**
-   * Move the picked channels to the end of their section and name them under GATHERED_GROUP_PREFIX.
+   * Move the picked channels to the end of their section (above the muted channels Slack puts last)
+   * and name them under GATHERED_GROUP_PREFIX.
    * A section is a run of consecutive channel items; headers and buttons (no channel type) split sections.
    * Other items keep Slack's order.
    */
@@ -86,7 +87,11 @@ export default class ChannelGrouper {
     let gathered: (ChannelItemContext & GatheredFields)[] = [];
 
     const flushSection = () => {
-      result.push(...staying, ...gathered);
+      let mutedTailStart = staying.length;
+      while (mutedTailStart > 0 && staying[mutedTailStart - 1].muted) {
+        mutedTailStart--;
+      }
+      result.push(...staying.slice(0, mutedTailStart), ...gathered, ...staying.slice(mutedTailStart));
       staying = [];
       gathered = [];
     };

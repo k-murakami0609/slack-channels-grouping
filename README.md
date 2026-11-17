@@ -24,7 +24,7 @@
 
 ## 📌 Gather channels (personal)
 
-Alt (Option on macOS) + click a channel in the sidebar to gather it at the end of its section.
+Alt (Option on macOS) + click a channel in the sidebar to gather it at the end of its section (above the muted channels Slack puts last).
 Gathered channels are grouped under `/` (e.g. `/ ┬ alert_xxx`). Alt + click it again to put it back.
 
 - Only the sidebar in your browser changes. Nothing changes on Slack, and other members see nothing.

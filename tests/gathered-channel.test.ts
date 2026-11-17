@@ -290,3 +290,43 @@ describe('DomChannelManipulator with gathered channels', () => {
     expect(displayedLabels()).toEqual(['beta', 'alpha']);
   });
 });
+
+describe('gathering with muted channels', () => {
+  it('puts gathered channels above the muted channels at the end of the section', () => {
+    const result = groupWithGathered(
+      [
+        channel(0, 'C1', 'alert_kintai'),
+        { ...channel(1, 'C2', 'muted-a'), muted: true },
+        channel(2, 'C3', 'general'),
+        { ...channel(3, 'C4', 'old-a'), muted: true },
+        { ...channel(4, 'C5', 'old-b'), muted: true },
+        { index: 5, name: 'Direct messages', channelItemType: null },
+      ],
+      ['C1'],
+    );
+
+    // Muted channels in the middle stay; only the trailing muted run goes below the gathered ones
+    expect(result.map(({ index }) => index)).toEqual([1, 2, 0, 3, 4, 5]);
+  });
+
+  it('reads the muted state from the sidebar', () => {
+    document.body.innerHTML = `
+      <div class="p-channel_sidebar__static_list">
+        <div role="treeitem">
+          <div class="p-channel_sidebar__channel p-channel_sidebar__channel--muted" data-qa-channel-sidebar-channel-type="channel" data-qa-channel-sidebar-channel-id="C1">
+            <span class="p-channel_sidebar__name">muted</span>
+          </div>
+        </div>
+        <div role="treeitem">
+          <div class="p-channel_sidebar__channel" data-qa-channel-sidebar-channel-type="channel" data-qa-channel-sidebar-channel-id="C2">
+            <span class="p-channel_sidebar__name">normal</span>
+          </div>
+        </div>
+      </div>`;
+
+    expect(new DomChannelManipulator().getChannelItemContexts().map(({ name, muted }) => ({ name, muted }))).toEqual([
+      { name: 'muted', muted: true },
+      { name: 'normal', muted: false },
+    ]);
+  });
+});

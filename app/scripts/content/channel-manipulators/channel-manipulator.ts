@@ -13,6 +13,8 @@ export interface ChannelItemContext {
   channelItemType: ChannelItemType | null;
   // Slack channel ID (e.g. C0123456789). null when it can not be read from the DOM.
   id?: string | null;
+  // Muted on Slack
+  muted?: boolean;
 }
 
 /**
