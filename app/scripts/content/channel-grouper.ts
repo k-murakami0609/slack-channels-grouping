@@ -1,10 +1,10 @@
 // modules
 import 'requestidlecallback-polyfill';
 import {
-  type ChannelAliasResolver,
   type ChannelItemContext,
   ChannelItemContextGroupType,
   type ChannelManipulator,
+  type GatheredChannelResolver,
   type GroupedChannelItemContext,
 } from './channel-manipulators/channel-manipulator';
 import { logger } from './logger';
@@ -14,6 +14,10 @@ const GROUPING_IDLE_CALLBACK_TIMEOUT = 3 * 1000;
 const UPDATE_CHANNEL_LIST_MIN_INTERVAL = 200;
 const REGEX_CHANNEL_MATCH = /(^.+?)[-_].*/;
 const CHANNEL_NAME_ROOT = '-/';
+// Prefix shown for the channels gathered at the end of a section
+export const GATHERED_GROUP_PREFIX = '/';
+
+type GatheredFields = Pick<GroupedChannelItemContext, 'rawName' | 'gathered'>;
 
 /**
  * Channel Grouping Class
@@ -24,7 +28,7 @@ export default class ChannelGrouper {
 
   constructor(
     private readonly adapter: ChannelManipulator,
-    private readonly resolveAlias: ChannelAliasResolver = () => null,
+    private readonly isGathered: GatheredChannelResolver = () => false,
   ) {
     this.debounceEmitUpdateTimeoutId = null;
     this.idleCallbackId = null;
@@ -60,7 +64,7 @@ export default class ChannelGrouper {
       return null;
     }
 
-    const groupedChannelItemContext = this.applyGroupingToContexts(channelItemContexts);
+    const groupedChannelItemContext = this.applyGroupingToContexts(this.gatherContexts(channelItemContexts));
 
     logger.labeledLog('Grouped channelItemContexts:', groupedChannelItemContext);
 
@@ -71,21 +75,50 @@ export default class ChannelGrouper {
     return groupedChannelItemContext;
   }
 
-  private applyGroupingToContexts(rawChannelItemContexts: ChannelItemContext[]): GroupedChannelItemContext[] {
-    const prefixeMap = new Map<number, string | null>();
+  /**
+   * Move the picked channels to the end of their section and name them under GATHERED_GROUP_PREFIX.
+   * A section is a run of consecutive channel items; headers and buttons (no channel type) split sections.
+   * Other items keep Slack's order.
+   */
+  private gatherContexts(channelItemContexts: ChannelItemContext[]): (ChannelItemContext & GatheredFields)[] {
+    const result: (ChannelItemContext & GatheredFields)[] = [];
+    let staying: (ChannelItemContext & GatheredFields)[] = [];
+    let gathered: (ChannelItemContext & GatheredFields)[] = [];
 
-    // Replace names with personal aliases, so that grouping follows the alias
-    const channelItemContexts = rawChannelItemContexts.map((context) => {
+    const flushSection = () => {
+      result.push(...staying, ...gathered);
+      staying = [];
+      gathered = [];
+    };
+
+    for (const context of channelItemContexts) {
+      if (context.channelItemType === null) {
+        flushSection();
+        result.push({ ...context, rawName: context.name, gathered: false });
+        continue;
+      }
+
       const isDirectMessage = context.channelItemType === 'im' || context.channelItemType === 'mpim';
-      const alias = isDirectMessage ? null : this.resolveAlias(context);
+      if (!isDirectMessage && context.name !== '' && this.isGathered(context)) {
+        gathered.push({
+          ...context,
+          name: `${GATHERED_GROUP_PREFIX}-${context.name}`,
+          rawName: context.name,
+          gathered: true,
+        });
+      } else {
+        staying.push({ ...context, rawName: context.name, gathered: false });
+      }
+    }
+    flushSection();
 
-      return {
-        ...context,
-        name: alias ?? context.name,
-        rawName: context.name,
-        alias,
-      };
-    });
+    return result;
+  }
+
+  private applyGroupingToContexts(
+    channelItemContexts: (ChannelItemContext & GatheredFields)[],
+  ): GroupedChannelItemContext[] {
+    const prefixeMap = new Map<number, string | null>();
 
     // Process for root
     // If next channel name is same as prefix, rename it like 'prefix-/'
@@ -103,11 +136,11 @@ export default class ChannelGrouper {
       }
     });
 
-    // Get prefix map
-    for (const context of channelItemContexts) {
+    // Get prefix map (keyed by display position)
+    channelItemContexts.forEach((context, position) => {
       const prefix = context.name.match(REGEX_CHANNEL_MATCH)?.[1] ?? null;
-      prefixeMap.set(context.index, prefix);
-    }
+      prefixeMap.set(position, prefix);
+    });
 
     // Grouping
     return channelItemContexts.map((context, index): GroupedChannelItemContext => {

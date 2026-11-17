@@ -25,6 +25,9 @@ export default class ChannelObserver extends EventEmitter<'update'> {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((addedNode) => {
           if (addedNode instanceof HTMLElement) {
+            if (addedNode.matches(domConstants.SELECTOR_CHANNEL_LIST_ITEMS)) {
+              this.observeChannelListItemPosition(addedNode);
+            }
             const channelListItemNameElem = addedNode.querySelector(domConstants.SELECTOR_CHANNEL_ITEM_NAME_SELECTOR);
             if (channelListItemNameElem !== null) {
               this.observeChannelListItemName(channelListItemNameElem);
@@ -154,6 +157,9 @@ export default class ChannelObserver extends EventEmitter<'update'> {
     document.querySelectorAll(domConstants.SELECTOR_CHANNEL_ITEM_NAME_SELECTOR).forEach((channelListItemElem) => {
       this.observeChannelListItemName(channelListItemElem);
     });
+    document.querySelectorAll(domConstants.SELECTOR_CHANNEL_LIST_ITEMS).forEach((channelListItemElem) => {
+      this.observeChannelListItemPosition(channelListItemElem);
+    });
 
     this.isObserving = true;
   }
@@ -174,6 +180,16 @@ export default class ChannelObserver extends EventEmitter<'update'> {
       childList: true,
       // NOTE: If set true, cause infinity loop. b/c observe channel name dom change.
       subtree: false,
+    });
+  }
+
+  /**
+   * Slack rewrites the item's `transform` when it re-renders the item, which undoes gathered channel positions.
+   */
+  protected observeChannelListItemPosition(channelListItemElem: Node): void {
+    this.channelListObserver.observe(channelListItemElem, {
+      attributes: true,
+      attributeFilter: ['style'],
     });
   }
 

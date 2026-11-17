@@ -1,13 +1,5 @@
 {
   "appDescription": {
     "message": "It grouping Slack channels by prefix."
-  },
-  "aliasPrompt": {
-    "message": "Alias for #$CHANNEL$ (only you can see it; leave empty to remove)",
-    "placeholders": {
-      "channel": {
-        "content": "$1"
-      }
-    }
   }
 }

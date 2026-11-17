@@ -22,14 +22,13 @@
 - Opera: [Slack Channels Grouping extension - Opera add-ons](https://addons.opera.com/extensions/details/slack-channels-grouping)
 - Edge: [Slack Channels Grouping – Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/klpmclmecincfgkoebkackfkmkafpgml)
 
-## 🏷️ Channel aliases (personal)
+## 📌 Gather channels (personal)
 
-Alt (Option on macOS) + click a channel in the sidebar to give it a personal alias.
-Leave the input empty to remove the alias.
+Alt (Option on macOS) + click a channel in the sidebar to gather it at the end of its section.
+Gathered channels are grouped under `/` (e.g. `/ ┬ alert_xxx`). Alt + click it again to put it back.
 
-- Only the sidebar label in your browser changes. The channel on Slack is not renamed, and other members see nothing.
-- Aliases are stored in `chrome.storage.local` of this browser, keyed by channel ID.
-- Grouping uses the alias: an alias like `proj-foo` joins the `proj` group when it sits next to `proj-*` channels in Slack's order.
+- Only the sidebar in your browser changes. Nothing changes on Slack, and other members see nothing.
+- The picked channels are stored in `chrome.storage.local` of this browser, keyed by channel ID.
 
 ## 🌐 Supported Languages
 - `de` German

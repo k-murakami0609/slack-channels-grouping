@@ -15,16 +15,19 @@ export interface ChannelItemContext {
   id?: string | null;
 }
 
+/**
+ * Grouped item. Items are ordered by display position; `index` still points to the DOM item.
+ */
 export interface GroupedChannelItemContext extends ChannelItemContext {
-  // Channel name on Slack. `name` is the name used for grouping (alias if set).
+  // Channel name on Slack. `name` is the name used for grouping.
   rawName: string;
-  // Personal alias of the channel, or null.
-  alias: string | null;
+  // Picked by the user to be gathered at the end of its section.
+  gathered: boolean;
   prefix: string | null;
   groupType: ChannelItemContextGroupType;
 }
 
-export type ChannelAliasResolver = (context: ChannelItemContext) => string | null;
+export type GatheredChannelResolver = (context: ChannelItemContext) => boolean;
 
 export interface ChannelManipulator {
   getChannelItemContexts(): ChannelItemContext[];

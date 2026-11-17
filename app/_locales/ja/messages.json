@@ -1,13 +1,5 @@
 {
   "appDescription": {
     "message": "Slackのチャンネル一覧をまとめます。"
-  },
-  "aliasPrompt": {
-    "message": "#$CHANNEL$ の別名（自分にだけ表示されます。空欄で解除）",
-    "placeholders": {
-      "channel": {
-        "content": "$1"
-      }
-    }
   }
 }
