@@ -1,6 +1,7 @@
 // modules
 import 'requestidlecallback-polyfill';
 import {
+  type ChannelAliasResolver,
   type ChannelItemContext,
   ChannelItemContextGroupType,
   type ChannelManipulator,
@@ -21,7 +22,10 @@ export default class ChannelGrouper {
   private debounceEmitUpdateTimeoutId: number | null;
   private idleCallbackId: number | null;
 
-  constructor(private readonly adapter: ChannelManipulator) {
+  constructor(
+    private readonly adapter: ChannelManipulator,
+    private readonly resolveAlias: ChannelAliasResolver = () => null,
+  ) {
     this.debounceEmitUpdateTimeoutId = null;
     this.idleCallbackId = null;
   }
@@ -67,8 +71,21 @@ export default class ChannelGrouper {
     return groupedChannelItemContext;
   }
 
-  private applyGroupingToContexts(channelItemContexts: ChannelItemContext[]): GroupedChannelItemContext[] {
+  private applyGroupingToContexts(rawChannelItemContexts: ChannelItemContext[]): GroupedChannelItemContext[] {
     const prefixeMap = new Map<number, string | null>();
+
+    // Replace names with personal aliases, so that grouping follows the alias
+    const channelItemContexts = rawChannelItemContexts.map((context) => {
+      const isDirectMessage = context.channelItemType === 'im' || context.channelItemType === 'mpim';
+      const alias = isDirectMessage ? null : this.resolveAlias(context);
+
+      return {
+        ...context,
+        name: alias ?? context.name,
+        rawName: context.name,
+        alias,
+      };
+    });
 
     // Process for root
     // If next channel name is same as prefix, rename it like 'prefix-/'

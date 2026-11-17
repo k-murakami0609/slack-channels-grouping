@@ -11,6 +11,7 @@ export const SELECTOR_CHANNEL_ITEM_NAME_SELECTOR = '.p-channel_sidebar__name';
 
 // data attr key
 export const DATA_KEY_CHANNEL_ITEM_CONTENTS_CONTAINER_CHANNEL_TYPE = 'data-qa-channel-sidebar-channel-type';
+export const DATA_KEY_CHANNEL_ITEM_CONTENTS_CONTAINER_CHANNEL_ID = 'data-qa-channel-sidebar-channel-id';
 
 // data attr key for extension
 export const DATA_KEY_RAW_CHANNEL_NAME = 'data-scg-raw-channel-name';

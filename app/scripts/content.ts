@@ -1,3 +1,5 @@
+import { setupChannelAliasEditor } from './content/channel-alias-editor';
+import { ChannelAliasStore, channelAliasKey } from './content/channel-alias-store';
 import ChannelGrouper from './content/channel-grouper';
 import { DomChannelManipulator } from './content/channel-manipulators/dom-channel-manipulator';
 import ChannelObserver from './content/channel-observer';
@@ -16,7 +18,7 @@ const WAIT_RENDER_CHANNEL_LIST_INTERVAL = 200;
     WAIT_RENDER_CHANNEL_LIST_INTERVAL,
     WAIT_RENDER_CHANNEL_LIST_TIMEOUT,
   )
-    .then(() => {
+    .then(async () => {
       // Check already running extension
       if (isAlreadyRunningExtension(RUNNING_CHECK_IDENTIFIER)) {
         logger.labeledLog('Extension is already running. Skip apply.');
@@ -27,7 +29,25 @@ const WAIT_RENDER_CHANNEL_LIST_INTERVAL = 200;
 
       const channelObserver = new ChannelObserver();
       const domChannnelManipulator = new DomChannelManipulator();
-      const channelGrouper = new ChannelGrouper(domChannnelManipulator);
+      const channelAliasStore = new ChannelAliasStore();
+      const channelGrouper = new ChannelGrouper(domChannnelManipulator, (context) =>
+        channelAliasStore.get(channelAliasKey(context.id, context.name)),
+      );
+
+      // Load personal channel aliases. Grouping still works without them.
+      try {
+        await channelAliasStore.load();
+        channelAliasStore.watch();
+        channelAliasStore.on('change', () => {
+          channelGrouper.groupingOnIdleAndDebounce();
+        });
+        setupChannelAliasEditor(channelAliasStore, domChannnelManipulator);
+      } catch (error) {
+        console.warn(
+          'Slack Channels Grouping: channel aliases are unavailable. Reload this page to enable them.',
+          error,
+        );
+      }
 
       // Grouping
       channelGrouper.groupingOnIdleAndDebounce();
