@@ -2,8 +2,6 @@ import ChannelGrouper from './content/channel-grouper';
 import { DomChannelManipulator } from './content/channel-manipulators/dom-channel-manipulator';
 import ChannelObserver from './content/channel-observer';
 import * as domConstants from './content/dom-constants';
-import { setupGatheredChannelEditor } from './content/gathered-channel-editor';
-import { GatheredChannelStore, channelKey } from './content/gathered-channel-store';
 import { logger } from './content/logger';
 import { isAlreadyRunningExtension } from './content/utils/extension-running-checker';
 import { waitElementRender } from './content/utils/wait-element-render';
@@ -18,7 +16,7 @@ const WAIT_RENDER_CHANNEL_LIST_INTERVAL = 200;
     WAIT_RENDER_CHANNEL_LIST_INTERVAL,
     WAIT_RENDER_CHANNEL_LIST_TIMEOUT,
   )
-    .then(async () => {
+    .then(() => {
       // Check already running extension
       if (isAlreadyRunningExtension(RUNNING_CHECK_IDENTIFIER)) {
         logger.labeledLog('Extension is already running. Skip apply.');
@@ -29,25 +27,7 @@ const WAIT_RENDER_CHANNEL_LIST_INTERVAL = 200;
 
       const channelObserver = new ChannelObserver();
       const domChannnelManipulator = new DomChannelManipulator();
-      const gatheredChannelStore = new GatheredChannelStore();
-      const channelGrouper = new ChannelGrouper(domChannnelManipulator, (context) =>
-        gatheredChannelStore.has(channelKey(context.id, context.name)),
-      );
-
-      // Load the channels picked to be gathered. Grouping still works without them.
-      try {
-        await gatheredChannelStore.load();
-        gatheredChannelStore.watch();
-        gatheredChannelStore.on('change', () => {
-          channelGrouper.groupingOnIdleAndDebounce();
-        });
-        setupGatheredChannelEditor(gatheredChannelStore, domChannnelManipulator);
-      } catch (error) {
-        console.warn(
-          'Slack Channels Grouping: gathered channels are unavailable. Reload this page to enable them.',
-          error,
-        );
-      }
+      const channelGrouper = new ChannelGrouper(domChannnelManipulator);
 
       // Grouping
       channelGrouper.groupingOnIdleAndDebounce();

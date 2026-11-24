@@ -22,13 +22,13 @@
 - Opera: [Slack Channels Grouping extension - Opera add-ons](https://addons.opera.com/extensions/details/slack-channels-grouping)
 - Edge: [Slack Channels Grouping – Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/klpmclmecincfgkoebkackfkmkafpgml)
 
-## 📌 Gather channels (personal)
+## 📌 Gather lone channels (personal)
 
-Alt (Option on macOS) + click a channel in the sidebar to gather it at the end of its section (above the muted channels Slack puts last).
-Gathered channels are grouped under `/` (e.g. `/ ┬ alert_xxx`). Alt + click it again to put it back.
+Channels that do not share their prefix with any other channel are gathered at the end of their section (above the muted channels Slack puts last), grouped under `/` (e.g. `/ ┬ alert_xxx`).
 
+- Direct messages and muted channels are not gathered.
+- A section with only one lone channel is left as is.
 - Only the sidebar in your browser changes. Nothing changes on Slack, and other members see nothing.
-- The picked channels are stored in `chrome.storage.local` of this browser, keyed by channel ID.
 
 ## 🌐 Supported Languages
 - `de` German

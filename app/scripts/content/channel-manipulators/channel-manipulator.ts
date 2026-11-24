@@ -23,13 +23,11 @@ export interface ChannelItemContext {
 export interface GroupedChannelItemContext extends ChannelItemContext {
   // Channel name on Slack. `name` is the name used for grouping.
   rawName: string;
-  // Picked by the user to be gathered at the end of its section.
+  // Lone channel gathered at the end of its section.
   gathered: boolean;
   prefix: string | null;
   groupType: ChannelItemContextGroupType;
 }
-
-export type GatheredChannelResolver = (context: ChannelItemContext) => boolean;
 
 export interface ChannelManipulator {
   getChannelItemContexts(): ChannelItemContext[];

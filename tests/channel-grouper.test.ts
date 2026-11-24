@@ -266,7 +266,7 @@ describe('ChannelGrouper test with multiple scenarios', () => {
   testCases.forEach(({ name, channels, expected }) => {
     it(name, () => {
       const mockManipulator = new MockChannelManipulator();
-      const channelGrouper = new ChannelGrouper(mockManipulator);
+      const channelGrouper = new ChannelGrouper(mockManipulator, { gatherLoneChannels: false });
 
       mockManipulator.setChannels(channels);
       const result = channelGrouper.grouping();

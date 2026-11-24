@@ -4,7 +4,6 @@ import {
   type ChannelItemContext,
   ChannelItemContextGroupType,
   type ChannelManipulator,
-  type GatheredChannelResolver,
   type GroupedChannelItemContext,
 } from './channel-manipulators/channel-manipulator';
 import { logger } from './logger';
@@ -28,7 +27,8 @@ export default class ChannelGrouper {
 
   constructor(
     private readonly adapter: ChannelManipulator,
-    private readonly isGathered: GatheredChannelResolver = () => false,
+    // Gather lone channels (no other channel shares their prefix) at the end of their section
+    private readonly options: { gatherLoneChannels: boolean } = { gatherLoneChannels: true },
   ) {
     this.debounceEmitUpdateTimeoutId = null;
     this.idleCallbackId = null;
@@ -64,7 +64,12 @@ export default class ChannelGrouper {
       return null;
     }
 
-    const groupedChannelItemContext = this.applyGroupingToContexts(this.gatherContexts(channelItemContexts));
+    const loneIndexes = this.options.gatherLoneChannels
+      ? this.findLoneChannelIndexes(channelItemContexts)
+      : new Set<number>();
+    const groupedChannelItemContext = this.applyGroupingToContexts(
+      this.gatherContexts(channelItemContexts, (context) => loneIndexes.has(context.index)),
+    );
 
     logger.labeledLog('Grouped channelItemContexts:', groupedChannelItemContext);
 
@@ -76,44 +81,79 @@ export default class ChannelGrouper {
   }
 
   /**
-   * Move the picked channels to the end of their section (above the muted channels Slack puts last)
+   * Channels that do not belong to any prefix group (no neighbor shares their prefix).
+   * Direct messages, muted channels and blank items are left out.
+   */
+  private findLoneChannelIndexes(channelItemContexts: ChannelItemContext[]): Set<number> {
+    const grouped = this.applyGroupingToContexts(
+      channelItemContexts.map((context) => ({ ...context, rawName: context.name, gathered: false })),
+    );
+
+    return new Set(
+      grouped
+        .filter(
+          (context) =>
+            context.groupType === ChannelItemContextGroupType.Alone &&
+            (context.channelItemType === 'channel' || context.channelItemType === 'private') &&
+            context.rawName !== '' &&
+            !context.muted,
+        )
+        .map((context) => context.index),
+    );
+  }
+
+  /**
+   * Move the lone channels to the end of their section (above the muted channels Slack puts last)
    * and name them under GATHERED_GROUP_PREFIX.
    * A section is a run of consecutive channel items; headers and buttons (no channel type) split sections.
-   * Other items keep Slack's order.
+   * A section with fewer than two lone channels is left as is. Other items keep Slack's order.
    */
-  private gatherContexts(channelItemContexts: ChannelItemContext[]): (ChannelItemContext & GatheredFields)[] {
+  private gatherContexts(
+    channelItemContexts: ChannelItemContext[],
+    shouldGather: (context: ChannelItemContext) => boolean,
+  ): (ChannelItemContext & GatheredFields)[] {
     const result: (ChannelItemContext & GatheredFields)[] = [];
-    let staying: (ChannelItemContext & GatheredFields)[] = [];
-    let gathered: (ChannelItemContext & GatheredFields)[] = [];
+    let section: ChannelItemContext[] = [];
+
+    const asIs = (context: ChannelItemContext): ChannelItemContext & GatheredFields => ({
+      ...context,
+      rawName: context.name,
+      gathered: false,
+    });
 
     const flushSection = () => {
+      const gathered = section.filter(shouldGather);
+      if (gathered.length < 2) {
+        result.push(...section.map(asIs));
+        section = [];
+        return;
+      }
+
+      const staying = section.filter((context) => !shouldGather(context));
       let mutedTailStart = staying.length;
       while (mutedTailStart > 0 && staying[mutedTailStart - 1].muted) {
         mutedTailStart--;
       }
-      result.push(...staying.slice(0, mutedTailStart), ...gathered, ...staying.slice(mutedTailStart));
-      staying = [];
-      gathered = [];
+      result.push(
+        ...staying.slice(0, mutedTailStart).map(asIs),
+        ...gathered.map((context) => ({
+          ...context,
+          name: `${GATHERED_GROUP_PREFIX}-${context.name}`,
+          rawName: context.name,
+          gathered: true,
+        })),
+        ...staying.slice(mutedTailStart).map(asIs),
+      );
+      section = [];
     };
 
     for (const context of channelItemContexts) {
       if (context.channelItemType === null) {
         flushSection();
-        result.push({ ...context, rawName: context.name, gathered: false });
+        result.push(asIs(context));
         continue;
       }
-
-      const isDirectMessage = context.channelItemType === 'im' || context.channelItemType === 'mpim';
-      if (!isDirectMessage && context.name !== '' && this.isGathered(context)) {
-        gathered.push({
-          ...context,
-          name: `${GATHERED_GROUP_PREFIX}-${context.name}`,
-          rawName: context.name,
-          gathered: true,
-        });
-      } else {
-        staying.push({ ...context, rawName: context.name, gathered: false });
-      }
+      section.push(context);
     }
     flushSection();
 
